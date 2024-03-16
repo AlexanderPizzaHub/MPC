@@ -127,6 +127,30 @@ class controller(object):
         self.XD = (xd_tilde - c).T @ self.Q_tilde @ self.G
         #print(c)
 
+    def setup_qp_by_ref(self,x0,u0,xd):
+        x0 = x0.reshape(-1,1)
+        xd = xd.reshape(-1,1)
+
+        c = np.zeros([self.pred_horizon*self.B.shape[0],1])
+        fmr_mat = np.eye(self.B.shape[0])
+        for i in range(self.pred_horizon):
+            f_minus_r = self.f0 - self.A @ self.x_lin - self.B @ self.u_lin
+            c[i*self.B.shape[0]:(i+1)*self.B.shape[0]] = self.del_A_pow[i] @ x0 + self.dt * fmr_mat @ f_minus_r
+            fmr_mat = fmr_mat + self.del_A_pow[i]
+
+        self.c = c
+        self.XD = (xd- c).T @ self.Q_tilde @ self.G
+        #print(c)
+
+    def compute_c(self,x0):
+        c = np.zeros([self.pred_horizon*self.B.shape[0],1])
+        fmr_mat = np.eye(self.B.shape[0])
+        for i in range(self.pred_horizon):
+            f_minus_r = self.f0 - self.A @ self.x_lin - self.B @ self.u_lin
+            c[i*self.B.shape[0]:(i+1)*self.B.shape[0]] = self.del_A_pow[i] @ x0 + self.dt * fmr_mat @ f_minus_r
+            fmr_mat = fmr_mat + self.del_A_pow[i]
+
+        return c
 
     def solve_qp(self,extra = None):
         if extra is None:
@@ -175,4 +199,5 @@ class controller(object):
         #return self.dt * (self.A @ x0 + self.B @ u) + x0 
         return x0 + self.dt * self.f(x0,u0)
     
-    
+
+
